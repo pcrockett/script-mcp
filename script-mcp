@@ -26,24 +26,12 @@ def process-request []: string -> nothing {
 
   if ($request | get --optional id | is-empty) {
     (
-      {
-        error: {
-          code: -32600
-          message: "Invalid request"
-          data: "Missing required field: \"id\""
-        }
-      }
+      missing-field-response "id"
       | send-response
     )
   } else if ($request | get --optional method | is-empty) {
     (
-      {
-        error: {
-          code: -32600
-          message: "Invalid request"
-          data: "Missing required field: \"method\""
-        }
-      }
+      missing-field-response "method"
       | send-response $request.id
     )
   } else {
@@ -58,25 +46,13 @@ def process-request []: string -> nothing {
 def process-jsonrpc-request [method: string]: nothing -> record {
   match ($method) {
     "initialize" => {
-      {
-        result: {
-          protocolVersion: "2024-11-05",
-          capabilities: {
-            tools: {}
-          },
-          serverInfo: {
-            name: "script-mcp",
-            version: $VERSION
-          }
-        }
-      }
+      method_initialize
     }
     "tools/list" => {
-      {
-        result: {
-          tools: []
-        }
-      }
+      method_tools_list
+    }
+    "tools/call" => {
+      method_tools_call
     }
     _ => {
       {
@@ -100,4 +76,52 @@ def send-response [request_id: any = null]: record -> nothing {
     | to json --raw
     | print
   )
+}
+
+def method_initialize []: record -> record {
+  {
+    result: {
+      protocolVersion: "2024-11-05",
+      capabilities: {
+        tools: {}
+      },
+      serverInfo: {
+        name: "script-mcp",
+        version: $VERSION
+      }
+    }
+  }
+}
+
+def method_tools_list []: record -> record {
+  {
+    result: {
+      tools: []
+    }
+  }
+}
+
+def method_tools_call []: record -> record {
+  let request = $in
+  internal-error-response "not implemented yet"
+  # TODO: use code -32601 for unknown tool
+}
+
+def missing-field-response [field_name: string]: nothing -> record {
+  {
+    error: {
+      code: -32600
+      message: "Invalid request"
+      data: $"Missing required field: \"($field_name)\""
+    }
+  }
+}
+
+def internal-error-response [message: string]: nothing -> record {
+  {
+    error: {
+      code: -32603
+      message: $message
+    }
+  }
 }

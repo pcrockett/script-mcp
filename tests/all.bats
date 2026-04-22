@@ -156,3 +156,27 @@ source tests/util.sh
   assert_eq "${response}" "${expected_response}" "Response does not match expected."
 }
 
+# @test 'tools/call -- no tools -- returns response' {
+#   echo '{
+#      "method": "tools/call",
+#      "id": "abcd"
+#   }' | jq --compact-output >requests
+
+#   script-mcp <requests >responses 2>errors
+#   exit_code=$?
+#   assert_eq ${exit_code} 0 "Exit code should be 0."
+
+#   errors="$(cat errors)"
+#   assert_eq "${errors}" "" "There should be no errors."
+
+#   response="$(cat responses)"
+#   expected_response=$(echo '{
+#     "jsonrpc": "2.0",
+#     "id": "abcd",
+#     "result": {
+#       "foo": "bar"
+#     }
+#   }' | jq --compact-output)
+#   assert_eq "${response}" "${expected_response}" "Response does not match expected."
+# }
+
