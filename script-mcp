@@ -24,36 +24,26 @@ def process-request []: string -> nothing {
     return
   }
 
-  if ($request | get --optional id | is-empty) {
-    (
-      missing-field-response "id"
-      | send-response
-    )
-  } else if ($request | get --optional method | is-empty) {
-    (
-      missing-field-response "method"
-      | send-response $request.id
-    )
-  } else {
-    (
-      $request
-      | process-jsonrpc-request $request.method
-      | send-response $request.id
-    )
-  }
+  (
+    {
+      id: ($request | get --optional id)
+      method: ($request | get --optional method)
+    }
+    | match ($in) {
+      {id: null} => { missing-field-response id }
+      {method: null} => { missing-field-response method }
+      _ => { $request | process-jsonrpc-request }
+    }
+    | send-response ($request | get --optional id)
+  )
 }
 
-def process-jsonrpc-request [method: string]: nothing -> record {
-  match ($method) {
-    "initialize" => {
-      method_initialize
-    }
-    "tools/list" => {
-      method_tools_list
-    }
-    "tools/call" => {
-      method_tools_call
-    }
+def process-jsonrpc-request []: record -> record {
+  let request = $in
+  $request | match ($request.method) {
+    "initialize" => { method_initialize }
+    "tools/list" => { method_tools_list }
+    "tools/call" => { method_tools_call }
     _ => {
       {
         error: {
