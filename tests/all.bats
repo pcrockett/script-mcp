@@ -303,6 +303,7 @@ source tests/util.sh
      }
   }' | jq --compact-output >requests
 
+  export SCRIPT_MCP_DEBUG_LOG_FILE="${PWD}/debug.log"
   script-mcp <requests >responses 2>errors
   exit_code=$?
   assert_eq ${exit_code} 0 "Exit code should be 0."
@@ -321,6 +322,12 @@ source tests/util.sh
     }
   }' | jq --compact-output)
   assert_eq "${response}" "${expected_response}" "Response does not match expected."
+
+  if ! grep --fixed-strings "Cannot find column 'message'" "${SCRIPT_MCP_DEBUG_LOG_FILE}"; then
+    cat "${SCRIPT_MCP_DEBUG_LOG_FILE}"
+    echo
+    fail "Expecting an error in the log file abount a missing message, but didn't get one."
+  fi
 }
 
 @test 'tools/call -- existing tool no args success -- returns result' {

@@ -132,7 +132,10 @@ def method_tools_call []: record -> record {
         }
       }
     }
-    _ => { internal-error-response "Tool call failed" $"Exit code ($result.exit_code)" }
+    _ => {
+      $result | table --expand | log debug
+      internal-error-response "Tool call failed" $"Exit code ($result.exit_code)"
+    }
   }
 }
 
@@ -201,4 +204,13 @@ def find-tools []: nothing -> list<record> {
       $tool | upsert "manifest" $manifest
     }
   )
+}
+
+def "log debug" []: string -> nothing {
+  let dest_file = $env | get --optional SCRIPT_MCP_DEBUG_LOG_FILE
+  if ($dest_file | is-empty) {
+    return
+  }
+
+  $"(date now | format date "%+")\n($in)\n" | save --append $dest_file
 }
