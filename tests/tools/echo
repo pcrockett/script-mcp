@@ -20,4 +20,3 @@ def "main discover" [] {
     }
   } | to json --raw | print
 }
-

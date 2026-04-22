@@ -222,4 +222,3 @@ source tests/util.sh
 #   }' | jq --compact-output)
 #   assert_eq "${response}" "${expected_response}" "Response does not match expected."
 # }
-
