@@ -119,9 +119,9 @@ source tests/util.sh
     "jsonrpc": "2.0",
     "id": "1234",
     "result": {
-      "protocolVersion": "2024-11-05",
+      "protocolVersion": "2025-11-25",
       "capabilities": {
-        "tools": {}
+        "tools": {"listChanged": false}
       },
       "serverInfo": {
         "name": "script-mcp",
@@ -191,6 +191,11 @@ source tests/util.sh
             },
             "required": ["message"]
           }
+        },
+        {
+          "name": "foobar",
+          "description": "Output is always \"foobar\"",
+          "inputSchema": {}
         }
       ]
     }
@@ -199,26 +204,150 @@ source tests/util.sh
   assert_eq "${response}" "${expected_response}" "Response does not match expected."
 }
 
-# @test 'tools/call -- no tools -- returns response' {
-#   echo '{
-#      "method": "tools/call",
-#      "id": "abcd"
-#   }' | jq --compact-output >requests
+@test 'tools/call -- no tool specified -- returns error response' {
+  echo '{
+     "method": "tools/call",
+     "id": "abcd"
+  }' | jq --compact-output >requests
 
-#   script-mcp <requests >responses 2>errors
-#   exit_code=$?
-#   assert_eq ${exit_code} 0 "Exit code should be 0."
+  script-mcp <requests >responses 2>errors
+  exit_code=$?
+  assert_eq ${exit_code} 0 "Exit code should be 0."
 
-#   errors="$(cat errors)"
-#   assert_eq "${errors}" "" "There should be no errors."
+  errors="$(cat errors)"
+  assert_eq "${errors}" "" "There should be no errors."
 
-#   response="$(cat responses)"
-#   expected_response=$(echo '{
-#     "jsonrpc": "2.0",
-#     "id": "abcd",
-#     "result": {
-#       "foo": "bar"
-#     }
-#   }' | jq --compact-output)
-#   assert_eq "${response}" "${expected_response}" "Response does not match expected."
-# }
+  response="$(cat responses)"
+  expected_response=$(echo '{
+    "jsonrpc": "2.0",
+    "id": "abcd",
+    "error": {
+      "code": -32600,
+      "message": "Invalid request",
+      "data": "Missing required field: \"params.name\""
+    }
+  }' | jq --compact-output)
+  assert_eq "${response}" "${expected_response}" "Response does not match expected."
+}
+
+@test 'tools/call -- nonexisting tool specified -- returns error response' {
+  echo '{
+     "method": "tools/call",
+     "id": "efgh",
+     "params": {
+       "name": "dkdkdkdkdkdkd"
+     }
+  }' | jq --compact-output >requests
+
+  script-mcp <requests >responses 2>errors
+  exit_code=$?
+  assert_eq ${exit_code} 0 "Exit code should be 0."
+
+  errors="$(cat errors)"
+  assert_eq "${errors}" "" "There should be no errors."
+
+  response="$(cat responses)"
+  expected_response=$(echo '{
+    "jsonrpc": "2.0",
+    "id": "efgh",
+    "error": {
+      "code": -32601,
+      "message": "Unknown tool",
+      "data": "params.name = dkdkdkdkdkdkd"
+    }
+  }' | jq --compact-output)
+  assert_eq "${response}" "${expected_response}" "Response does not match expected."
+}
+
+@test 'tools/call -- existing tool success -- returns result' {
+  echo '{
+     "method": "tools/call",
+     "id": "efgh",
+     "params": {
+       "name": "echo",
+       "arguments": {
+         "message": "hello there"
+       }
+     }
+  }' | jq --compact-output >requests
+
+  script-mcp <requests >responses 2>errors
+  exit_code=$?
+  assert_eq ${exit_code} 0 "Exit code should be 0."
+
+  errors="$(cat errors)"
+  assert_eq "${errors}" "" "There should be no errors."
+
+  response="$(cat responses)"
+  expected_response=$(echo '{
+    "jsonrpc": "2.0",
+    "id": "efgh",
+    "result": {
+      "content": [{
+        "type": "text",
+        "text": "hello there"
+      }]
+    }
+  }' | jq --compact-output)
+  assert_eq "${response}" "${expected_response}" "Response does not match expected."
+}
+
+@test 'tools/call -- existing tool failure -- returns error response' {
+  echo '{
+     "method": "tools/call",
+     "id": "efgh",
+     "params": {
+       "name": "echo",
+       "arguments": {}
+     }
+  }' | jq --compact-output >requests
+
+  script-mcp <requests >responses 2>errors
+  exit_code=$?
+  assert_eq ${exit_code} 0 "Exit code should be 0."
+
+  errors="$(cat errors)"
+  assert_eq "${errors}" "" "There should be no errors."
+
+  response="$(cat responses)"
+  expected_response=$(echo '{
+    "jsonrpc": "2.0",
+    "id": "efgh",
+    "error": {
+      "code": -32603,
+      "message": "Tool call failed",
+      "data": "Exit code 1"
+    }
+  }' | jq --compact-output)
+  assert_eq "${response}" "${expected_response}" "Response does not match expected."
+}
+
+@test 'tools/call -- existing tool no args success -- returns result' {
+  echo '{
+     "method": "tools/call",
+     "id": "efgh",
+     "params": {
+       "name": "foobar"
+     }
+  }' | jq --compact-output >requests
+
+  script-mcp <requests >responses 2>errors
+  exit_code=$?
+  assert_eq ${exit_code} 0 "Exit code should be 0."
+
+  errors="$(cat errors)"
+  assert_eq "${errors}" "" "There should be no errors."
+
+  response="$(cat responses)"
+  expected_response=$(echo '{
+    "jsonrpc": "2.0",
+    "id": "efgh",
+    "result": {
+      "content": [{
+        "type": "text",
+        "text": "foobar"
+      }]
+    }
+  }' | jq --compact-output)
+  assert_eq "${response}" "${expected_response}" "Response does not match expected."
+}

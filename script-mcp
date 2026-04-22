@@ -72,12 +72,14 @@ def send-response [request_id: any = null]: record -> nothing {
 def method_initialize []: record -> record {
   {
     result: {
-      protocolVersion: "2024-11-05",
+      protocolVersion: "2025-11-25"
       capabilities: {
-        tools: {}  # yes, we provide tools
-      },
+        tools: {
+          listChanged: false
+        }
+      }
       serverInfo: {
-        name: "script-mcp",
+        name: "script-mcp"
         version: $VERSION
       }
     }
@@ -94,8 +96,44 @@ def method_tools_list []: record -> record {
 
 def method_tools_call []: record -> record {
   let request = $in
-  internal-error-response "not implemented yet"
-  # TODO: use code -32601 for unknown tool
+  let name = try {
+    $request.params.name
+  } catch {
+    return (missing-field-response "params.name")
+  }
+  let tool = (find-tools | where { $in.name == $name } | first)
+  if ($tool | is-empty) {
+    return {
+      error: {
+        code: -32601
+        message: "Unknown tool"
+        data: $"params.name = ($name)"
+      }
+    }
+  }
+  let result = (
+    $request.params
+    | get --optional arguments
+    | default {}
+    | to json --raw
+    | ^$tool.path
+    | complete
+  )
+  match ($result) {
+    {exit_code: 0} => {
+      {
+        result: {
+          content: [
+            {
+              type: text
+              text: ($result.stdout | str trim)
+            }
+          ]
+        }
+      }
+    }
+    _ => { internal-error-response "Tool call failed" $"Exit code ($result.exit_code)" }
+  }
 }
 
 def missing-field-response [field_name: string]: nothing -> record {
@@ -108,12 +146,15 @@ def missing-field-response [field_name: string]: nothing -> record {
   }
 }
 
-def internal-error-response [message: string]: nothing -> record {
-  {
-    error: {
-      code: -32603
-      message: $message
-    }
+def internal-error-response [message: string, data?: string]: nothing -> record {
+  let error = {
+    code: -32603
+    message: $message
+  }
+  if ($data | is-empty) {
+    { error: $error }
+  } else {
+    { error: ($error | upsert data $data) }
   }
 }
 

@@ -1,0 +1,12 @@
+#!/usr/bin/env -S nu --stdin
+
+def main [] {
+  "foobar" | print
+}
+
+def "main discover" [] {
+  {
+    description: "Output is always \"foobar\""
+    inputSchema: {}
+  } | to json --raw | print
+}
