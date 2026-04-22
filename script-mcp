@@ -1,0 +1,103 @@
+#!/usr/bin/env -S nu --stdin
+
+const VERSION = "0.0.1"
+
+def main [] {
+  open --raw /dev/stdin | lines | each { process-request }
+  ignore
+}
+
+def process-request []: string -> nothing {
+  let request = try {
+    $in | from json
+  } catch {
+    (
+      {
+        error: {
+          code: -32700
+          message: "Parse error"
+          data: "Invalid JSON received"
+        }
+      }
+      | send-response
+    )
+    return
+  }
+
+  if ($request | get --optional id | is-empty) {
+    (
+      {
+        error: {
+          code: -32600
+          message: "Invalid request"
+          data: "Missing required field: \"id\""
+        }
+      }
+      | send-response
+    )
+  } else if ($request | get --optional method | is-empty) {
+    (
+      {
+        error: {
+          code: -32600
+          message: "Invalid request"
+          data: "Missing required field: \"method\""
+        }
+      }
+      | send-response $request.id
+    )
+  } else {
+    (
+      $request
+      | process-jsonrpc-request $request.method
+      | send-response $request.id
+    )
+  }
+}
+
+def process-jsonrpc-request [method: string]: nothing -> record {
+  match ($method) {
+    "initialize" => {
+      {
+        result: {
+          protocolVersion: "2024-11-05",
+          capabilities: {
+            tools: {}
+          },
+          serverInfo: {
+            name: "script-mcp",
+            version: $VERSION
+          }
+        }
+      }
+    }
+    "tools/list" => {
+      {
+        result: {
+          tools: []
+        }
+      }
+    }
+    _ => {
+      {
+        error: {
+          code: -32601
+          message: "Method not found"
+        }
+      }
+    }
+  }
+}
+
+def send-response [request_id: any = null]: record -> nothing {
+  let payload = $in
+  (
+    {
+      jsonrpc: "2.0"
+      id: $request_id
+      ...$payload
+    }
+    | to json --raw
+    | print
+  )
+}
