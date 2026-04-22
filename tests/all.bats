@@ -133,6 +133,9 @@ source tests/util.sh
 }
 
 @test 'tools/list -- no tools -- returns response' {
+
+  rm -rf tools
+
   echo '{
      "method": "tools/list",
      "id": "5678"
@@ -153,6 +156,46 @@ source tests/util.sh
       "tools": []
     }
   }' | jq --compact-output)
+  assert_eq "${response}" "${expected_response}" "Response does not match expected."
+}
+
+@test 'tools/list -- some tools exist -- returns response' {
+  echo '{
+     "method": "tools/list",
+     "id": "5678"
+  }' | jq --compact-output >requests
+
+  script-mcp <requests >responses 2>errors
+  exit_code=$?
+  assert_eq ${exit_code} 0 "Exit code should be 0."
+
+  errors="$(cat errors)"
+  assert_eq "${errors}" "" "There should be no errors."
+
+  response="$(cat responses)"
+  expected_response=$(echo '{
+    "jsonrpc": "2.0",
+    "id": "5678",
+    "result": {
+      "tools": [
+        {
+          "name": "echo",
+          "description": "Echo chamber",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "description": "The message you want to echo"
+              }
+            },
+            "required": ["message"]
+          }
+        }
+      ]
+    }
+  }' | jq --compact-output)
+
   assert_eq "${response}" "${expected_response}" "Response does not match expected."
 }
 

@@ -11,6 +11,7 @@ setup() {
   mkdir -p "${TEST_BIN}"
   cp .tool-versions "${TEST_CWD}"
   cp script-mcp "${TEST_BIN}"
+  cp -r tests/tools "${TEST_CWD}"
   cd "${TEST_CWD}"
   PATH="${TEST_HOME}/.local/bin:${PATH}"
   export HOME="${TEST_HOME}"

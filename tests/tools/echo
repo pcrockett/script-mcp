@@ -1,0 +1,23 @@
+#!/usr/bin/env -S nu --stdin
+
+def main [] {
+  let payload = $in | from json
+  $payload.message | print
+}
+
+def "main discover" [] {
+  {
+    description: "Echo chamber"
+    inputSchema: {
+      type: "object"
+      properties: {
+        message: {
+          type: "string"
+          description: "The message you want to echo"
+        }
+      }
+      required: [message]
+    }
+  } | to json --raw | print
+}
+

@@ -1,6 +1,7 @@
 #!/usr/bin/env -S nu --stdin
 
 const VERSION = "0.0.1"
+let TOOLS_DIR = "tools"
 
 def main [] {
   open --raw /dev/stdin | lines | each { process-request }
@@ -73,7 +74,7 @@ def method_initialize []: record -> record {
     result: {
       protocolVersion: "2024-11-05",
       capabilities: {
-        tools: {}
+        tools: {}  # yes, we provide tools
       },
       serverInfo: {
         name: "script-mcp",
@@ -86,7 +87,7 @@ def method_initialize []: record -> record {
 def method_tools_list []: record -> record {
   {
     result: {
-      tools: []
+      tools: (find-tools | each { $in.manifest })
     }
   }
 }
@@ -115,3 +116,30 @@ def internal-error-response [message: string]: nothing -> record {
     }
   }
 }
+
+def find-tools []: nothing -> list<record> {
+  if not ($TOOLS_DIR | path exists) {
+    return []
+  }
+
+  (
+    ls $TOOLS_DIR
+    | where { $in.type == "file" }
+    | each {|file|
+      {
+        name: ($file.name | path basename)
+        path: ($file.name | path expand)
+      }
+    }
+    | each {|tool|
+      let discovery = (^$tool.path discover | from json)
+      let manifest = {
+        name: $tool.name
+        description: $discovery.description
+        inputSchema: $discovery.inputSchema
+      }
+      $tool | upsert "manifest" $manifest
+    }
+  )
+}
+
