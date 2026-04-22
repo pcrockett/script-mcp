@@ -4,7 +4,7 @@ const VERSION = "0.0.1"
 let TOOLS_DIR = "tools"
 
 def main [] {
-  open --raw /dev/stdin | lines | each { process-request }
+  lines | take until { is-empty } | each { process-request }
   ignore
 }
 
