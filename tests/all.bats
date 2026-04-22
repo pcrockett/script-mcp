@@ -194,8 +194,9 @@ source tests/util.sh
         },
         {
           "name": "foobar",
-          "description": "Output is always \"foobar\"",
-          "inputSchema": {}
+          "inputSchema": {
+            "type": "object"
+          }
         }
       ]
     }

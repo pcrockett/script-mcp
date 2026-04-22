@@ -5,8 +5,5 @@ def main [] {
 }
 
 def "main discover" [] {
-  {
-    description: "Output is always \"foobar\""
-    inputSchema: {}
-  } | to json --raw | print
+  ignore # doesn't expect any input
 }

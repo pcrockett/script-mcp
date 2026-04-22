@@ -173,11 +173,30 @@ def find-tools []: nothing -> list<record> {
       }
     }
     | each {|tool|
-      let discovery = (^$tool.path discover | from json)
-      let manifest = {
-        name: $tool.name
-        description: $discovery.description
-        inputSchema: $discovery.inputSchema
+      let discovery = try {
+        (^$tool.path discover | from json)
+      } catch {
+        # may optionally cause a non-fatal error response...
+        # but i think outright failure is ok for now
+        error make {msg: $"Discovery failed for tool \"($tool.name)\""}
+      }
+      let description = ($discovery | get --optional description)
+      let input_schema = (
+        $discovery
+        | get --optional inputSchema
+        | default { type: "object" }
+      )
+      let manifest = if ($description | is-not-empty) {
+        {
+          name: $tool.name
+          description: $description
+          inputSchema: $input_schema
+        }
+      } else {
+        {
+          name: $tool.name
+          inputSchema: $input_schema
+        }
       }
       $tool | upsert "manifest" $manifest
     }
