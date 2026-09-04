@@ -22,10 +22,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pcrockett/setup-just@f92bfe35b28001602570caeeaff0eb7abb96eca1  # v0.1.1
+      - uses: pcrockett/setup-just@096177f0c832d972bdf47b0fac0e8b9c0eb49326  # v0.1.2
       - uses: pcrockett/setup-shfmt@d8d8c3e8826447cc32357cd9436c6b90d1a01aa3  # v0.1.0
       - uses: pcrockett/setup-yamlfmt@2949e59bb1f6d24f519d0dfa2560a0dbcd563fcc  # v0.1.1
-      - uses: pcrockett/setup-pre-commit@604adc417a2c8d550593c4261accb53db82de13f  # v0.1.1
+      - uses: pcrockett/setup-pre-commit@e7e4a210561b1c4114b3a45eddbdc67e39e81f21  # v0.1.2
       - uses: pcrockett/setup-actionlint@df8241ffe42b97e7324773d54523a29a59e7d485  # v0.1.0
 
       - run: just lint
